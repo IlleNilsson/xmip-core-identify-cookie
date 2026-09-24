@@ -23,11 +23,10 @@
 //! `cookie.name`. It attaches no proof: a cookie that is a session secret
 //! belongs to a technology that knows what the session is.
 
+use context::property::HTTP_COOKIE;
 use identify::{IdentifyError, Presented, StreamArrival, TransportIdentifier};
 use xcore::{Arriving, Mechanism};
 
-/// The property the transport puts the `Cookie` request header under.
-pub const COOKIE_HEADER: &str = "http.header.cookie";
 /// The evidence name the cookie's name rides under.
 pub const COOKIE_NAME: &str = "cookie.name";
 
@@ -101,7 +100,7 @@ impl TransportIdentifier for CookieIdentifier {
         }
 
         let Some(value) = arrival
-            .property(COOKIE_HEADER)
+            .property(HTTP_COOKIE)
             .and_then(|header| cookie(header, &self.name))
         else {
             return Ok(None);
@@ -140,7 +139,7 @@ mod tests {
     }
 
     fn header(value: &str) -> Vec<(String, String)> {
-        vec![(COOKIE_HEADER.to_string(), value.to_string())]
+        vec![(HTTP_COOKIE.to_string(), value.to_string())]
     }
 
     fn partner() -> CookieIdentifier {
