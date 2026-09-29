@@ -5,7 +5,7 @@
 //! RFC 6265 sends every cookie a client holds in one `Cookie` header, as
 //! `name=value` pairs separated by `; `. The transport puts that header on
 //! the arrival as `http.header.cookie`, and the identifier is built naming
-//! one cookie in it — a `partner`, a `session` — whose value it presents under
+//! one cookie in it — a `party`, a `session` — whose value it presents under
 //! [`xcore::mechanism::cookie`], passed and with nothing behind it. Every
 //! other cookie in the header is somebody else's and is not looked at, so a
 //! malformed neighbor never turns this one into an error.
@@ -142,52 +142,46 @@ mod tests {
         vec![(HTTP_COOKIE.to_string(), value.to_string())]
     }
 
-    fn partner() -> CookieIdentifier {
-        CookieIdentifier::named("partner").expect("a name")
+    fn party() -> CookieIdentifier {
+        CookieIdentifier::named("party").expect("a name")
     }
 
     #[test]
     fn a_named_cookie_is_the_claim_and_its_neighbors_are_not_looked_at() {
         let stream = stream();
-        let facts = header("theme=dark; partner=partner-x; broken; lang=sv");
+        let facts = header("theme=dark; party=party-x; broken; lang=sv");
         let arrival = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in", &facts);
 
-        let claim = partner()
-            .identify(&arrival)
-            .expect("read")
-            .expect("a claim");
+        let claim = party().identify(&arrival).expect("read").expect("a claim");
 
         assert_eq!(claim.mechanism.name(), "cookie");
-        assert_eq!(claim.value, "partner-x");
+        assert_eq!(claim.value, "party-x");
         assert_eq!(claim.established, Established::Passed);
         assert_eq!(claim.layer(), Layer::Transport);
         assert_eq!(
             claim.evidence,
-            vec![(COOKIE_NAME.to_string(), "partner".to_string())]
+            vec![(COOKIE_NAME.to_string(), "party".to_string())]
         );
     }
 
     #[test]
     fn a_quoted_value_is_presented_without_its_quotes_and_the_first_of_two_stands() {
         let stream = stream();
-        let facts = header("partner=\"partner-x\";partner=partner-y");
+        let facts = header("party=\"party-x\";party=party-y");
         let arrival = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in", &facts);
 
-        let claim = partner()
-            .identify(&arrival)
-            .expect("read")
-            .expect("a claim");
+        let claim = party().identify(&arrival).expect("read").expect("a claim");
 
-        assert_eq!(claim.value, "partner-x");
+        assert_eq!(claim.value, "party-x");
     }
 
     #[test]
     fn a_cookie_name_is_compared_exactly_as_written() {
         let stream = stream();
-        let facts = header("Partner=partner-x");
+        let facts = header("Party=party-x");
         let arrival = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in", &facts);
 
-        assert!(partner().identify(&arrival).expect("read").is_none());
+        assert!(party().identify(&arrival).expect("read").is_none());
     }
 
     #[test]
@@ -197,22 +191,19 @@ mod tests {
         let with_other = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in", &other);
         let bare = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in", &[]);
 
-        assert!(partner().identify(&with_other).expect("read").is_none());
-        assert!(partner().identify(&bare).expect("read").is_none());
+        assert!(party().identify(&with_other).expect("read").is_none());
+        assert!(party().identify(&bare).expect("read").is_none());
     }
 
     #[test]
     fn a_cookie_that_is_present_and_empty_is_an_error_and_not_an_absence() {
         let stream = stream();
-        let facts = header("partner=; theme=dark");
+        let facts = header("party=; theme=dark");
         let arrival = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in", &facts);
 
-        let failure = partner().identify(&arrival).expect_err("empty");
+        let failure = party().identify(&arrival).expect_err("empty");
 
-        assert_eq!(
-            failure.to_string(),
-            "the cookie partner is present and empty"
-        );
+        assert_eq!(failure.to_string(), "the cookie party is present and empty");
     }
 
     #[test]
@@ -226,10 +217,9 @@ mod tests {
     #[test]
     fn a_scheduled_pickup_carries_no_cookie_of_the_sources() {
         let stream = stream();
-        let facts = header("partner=partner-x");
-        let arrival =
-            StreamArrival::new(&stream, Arriving::Scheduled, "https://partner/out", &facts);
+        let facts = header("party=party-x");
+        let arrival = StreamArrival::new(&stream, Arriving::Scheduled, "https://party/out", &facts);
 
-        assert!(partner().identify(&arrival).expect("read").is_none());
+        assert!(party().identify(&arrival).expect("read").is_none());
     }
 }
