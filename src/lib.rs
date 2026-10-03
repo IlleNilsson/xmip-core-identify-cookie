@@ -131,12 +131,8 @@ impl TransportIdentifier for CookieIdentifier {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use stream::Stream;
-    use xcore::{Established, Layer, StreamId};
 
-    fn stream() -> Stream {
-        Stream::new(StreamId::new(1), b"<order/>".to_vec(), None)
-    }
+    use xcore::{Established, Layer};
 
     fn header(value: &str) -> Vec<(String, String)> {
         vec![(HTTP_COOKIE.to_string(), value.to_string())]
@@ -148,9 +144,8 @@ mod tests {
 
     #[test]
     fn a_named_cookie_is_the_claim_and_its_neighbors_are_not_looked_at() {
-        let stream = stream();
         let facts = header("theme=dark; party=party-x; broken; lang=sv");
-        let arrival = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in", &facts);
+        let arrival = StreamArrival::new(Arriving::Pushed, "https://xmip/in", &facts);
 
         let claim = party().identify(&arrival).expect("read").expect("a claim");
 
@@ -166,9 +161,8 @@ mod tests {
 
     #[test]
     fn a_quoted_value_is_presented_without_its_quotes_and_the_first_of_two_stands() {
-        let stream = stream();
         let facts = header("party=\"party-x\";party=party-y");
-        let arrival = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in", &facts);
+        let arrival = StreamArrival::new(Arriving::Pushed, "https://xmip/in", &facts);
 
         let claim = party().identify(&arrival).expect("read").expect("a claim");
 
@@ -177,19 +171,17 @@ mod tests {
 
     #[test]
     fn a_cookie_name_is_compared_exactly_as_written() {
-        let stream = stream();
         let facts = header("Party=party-x");
-        let arrival = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in", &facts);
+        let arrival = StreamArrival::new(Arriving::Pushed, "https://xmip/in", &facts);
 
         assert!(party().identify(&arrival).expect("read").is_none());
     }
 
     #[test]
     fn an_arrival_without_the_cookie_presents_nothing() {
-        let stream = stream();
         let other = header("theme=dark");
-        let with_other = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in", &other);
-        let bare = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in", &[]);
+        let with_other = StreamArrival::new(Arriving::Pushed, "https://xmip/in", &other);
+        let bare = StreamArrival::new(Arriving::Pushed, "https://xmip/in", &[]);
 
         assert!(party().identify(&with_other).expect("read").is_none());
         assert!(party().identify(&bare).expect("read").is_none());
@@ -197,9 +189,8 @@ mod tests {
 
     #[test]
     fn a_cookie_that_is_present_and_empty_is_an_error_and_not_an_absence() {
-        let stream = stream();
         let facts = header("party=; theme=dark");
-        let arrival = StreamArrival::new(&stream, Arriving::Pushed, "https://xmip/in", &facts);
+        let arrival = StreamArrival::new(Arriving::Pushed, "https://xmip/in", &facts);
 
         let failure = party().identify(&arrival).expect_err("empty");
 
@@ -216,9 +207,8 @@ mod tests {
 
     #[test]
     fn a_scheduled_pickup_carries_no_cookie_of_the_sources() {
-        let stream = stream();
         let facts = header("party=party-x");
-        let arrival = StreamArrival::new(&stream, Arriving::Scheduled, "https://party/out", &facts);
+        let arrival = StreamArrival::new(Arriving::Scheduled, "https://party/out", &facts);
 
         assert!(party().identify(&arrival).expect("read").is_none());
     }
